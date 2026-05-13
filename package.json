@@ -1,0 +1,17 @@
+{
+  "name": "mpv-lrc-loader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read embedded timed LRC lyrics (SYLT frames) from MP3 files and display them as subtitles in mpv",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/mpv-script": "^0.32.2",
+    "prettier": "^3.8.3",
+    "typescript": "^4.9.4"
+  }
+}

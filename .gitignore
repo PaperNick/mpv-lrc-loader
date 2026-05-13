@@ -1,0 +1,5 @@
+node_modules
+dist/
+*.swp
+*.mp3
+*.lrc
