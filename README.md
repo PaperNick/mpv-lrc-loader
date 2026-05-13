@@ -10,10 +10,13 @@ You need to have [go-sylt](https://github.com/mogita/go-sylt) installed in your 
 
 ## Installation
 
-Copy the compiled script to your mpv scripts folder:
+> [!NOTE]
+> Pre-compiled versions are available on the [releases page](https://github.com/PaperNick/mpv-lrc-loader/releases)
+
+Copy the script to your mpv scripts folder:
 
 ```bash
-cp dist/mpv-lrc-loader.js ~/.config/mpv/scripts/
+cp mpv-lrc-loader.js ~/.config/mpv/scripts/
 ```
 
 
