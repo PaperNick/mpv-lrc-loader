@@ -13,12 +13,18 @@ function logError(message: string): void {
   }
 }
 
+function isWindows(): boolean {
+  const workdir = mp.get_property_native("working-directory") as string
+  return workdir.indexOf("\\") !== -1
+}
+
 function isGoSyltInstalled(): boolean {
+  const whichCmd = isWindows() ? "where" : "which"
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: ["go-sylt", "--version"],
+    args: [whichCmd, "go-sylt"],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
