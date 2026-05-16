@@ -58,24 +58,20 @@ function extractSyltLyrics(filePath: string): string | null {
 
   if (subprocessResult.status !== 0) {
     const errorOutput = (subprocessResult.stderr ?? "").trim()
-    const noSyltFound = /[Nn]o SYLT frames found/.test(errorOutput)
-    if (!noSyltFound) {
+    const noSyncedLyrics = /no SYLT frames found/i.test(errorOutput)
+    if (!noSyncedLyrics) {
       logError(`go-sylt error: ${errorOutput}`)
     }
     return null
   }
 
   const rawLyrics = subprocessResult.stdout
-  if (!rawLyrics) {
-    return null
-  }
-
-  return rawLyrics
+  return rawLyrics ?? null
 }
 
 function parseLanguageAndLyrics(rawOutput: string): {
   language: string | null
-  lrcLines: string[]
+  lyrics: string
 } {
   let language: string | null = null
   const lrcLines: string[] = []
@@ -83,11 +79,8 @@ function parseLanguageAndLyrics(rawOutput: string): {
   for (const line of rawOutput.split("\n")) {
     const cleanedLine = line.replace(/\r$/, "")
 
-    // Extract language from go-sylt's "Language: xxx" header
-    const languageMatch = cleanedLine.match(/^Language:\s*(\w+)/)
-    if (languageMatch) {
-      language = languageMatch[1]
-      continue
+    if (!language) {
+      language = cleanedLine.match(/^Language:\s*(\w+)/)?.[1] ?? null
     }
 
     // Keep only timestamp lines like [mm:ss.xx], skip metadata tags like [ar:Artist]
@@ -96,7 +89,7 @@ function parseLanguageAndLyrics(rawOutput: string): {
     }
   }
 
-  return { language, lrcLines }
+  return { language, lyrics: lrcLines.join("\n") }
 }
 
 /**
@@ -109,8 +102,8 @@ function parseLanguageAndLyrics(rawOutput: string): {
  * convertToCentiseconds("[01:05.123] Line one\n[01:08.999] Line two")
  * // Returns: "[01:05.12] Line one\n[01:08.99] Line two"
  */
-function convertToCentiseconds(lrcContent: string): string {
-  return lrcContent.replace(
+function convertToCentiseconds(lyrics: string): string {
+  return lyrics.replace(
     /\[(\d+):(\d+)\.(\d\d)\d\]/g,
     (_match, minutes, seconds, centiseconds) => `[${minutes}:${seconds}.${centiseconds}]`,
   )
@@ -125,13 +118,8 @@ function isLocalFile(filePath: string): boolean {
   return filePath.indexOf("://") === -1
 }
 
-function loadSyltLyricsIntoMpv(lrcContent: string, language: string | null): void {
-  const subtitleArguments: string[] = [
-    "sub-add",
-    `memory://${lrcContent}`,
-    "select",
-    "Embedded lyrics",
-  ]
+function loadLyricsInMpv(lyrics: string, language: string | null): void {
+  const subtitleArguments: string[] = ["sub-add", `memory://${lyrics}`, "select", "Embedded LRC"]
   if (language) {
     subtitleArguments.push(language)
   }
@@ -154,12 +142,11 @@ function main(): void {
     }
 
     if (!isLocalFile(filePath)) {
-      // go-sylt only supports local files, not streams
+      // go-sylt supports only local files, not streams
       return
     }
 
     if (getFileExtension(filePath) !== ".mp3") {
-      mp.msg.verbose(`Skipping non-MP3 file: ${getFileExtension(filePath) || "no extension"}`)
       return
     }
 
@@ -168,14 +155,12 @@ function main(): void {
       return
     }
 
-    const { language, lrcLines } = parseLanguageAndLyrics(rawSyltOutput)
-    let lrcContent = lrcLines.join("\n")
-    if (!lrcContent) {
+    const { language, lyrics } = parseLanguageAndLyrics(rawSyltOutput)
+    if (!lyrics) {
       return
     }
 
-    lrcContent = convertToCentiseconds(lrcContent)
-    loadSyltLyricsIntoMpv(lrcContent, language)
+    loadLyricsInMpv(convertToCentiseconds(lyrics), language)
   })
 }
 
