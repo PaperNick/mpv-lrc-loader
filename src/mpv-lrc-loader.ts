@@ -18,13 +18,13 @@ function isWindows(): boolean {
   return workdir.indexOf("\\") !== -1
 }
 
-function isGoSyltInstalled(): boolean {
+function isLrcToolsInstalled(): boolean {
   const whichCmd = isWindows() ? "where" : "which"
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: [whichCmd, "go-sylt"],
+    args: [whichCmd, "lrc_tools"],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
@@ -32,19 +32,19 @@ function isGoSyltInstalled(): boolean {
   }
 
   if (subprocessResult.status < 0) {
-    logError(`Could not check 'go-sylt': ${subprocessResult.error_string ?? "unknown error"}`)
+    logError(`Could not check 'lrc_tools': ${subprocessResult.error_string ?? "unknown error"}`)
     return false
   }
 
   return subprocessResult.status === 0
 }
 
-function extractSyltLyrics(filePath: string): string | null {
+function readTimedLyrics(filePath: string): string | null {
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: ["go-sylt", filePath],
+    args: ["lrc_tools", "read", "--include-lang", filePath, "timed"],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
@@ -58,9 +58,9 @@ function extractSyltLyrics(filePath: string): string | null {
 
   if (subprocessResult.status !== 0) {
     const errorOutput = (subprocessResult.stderr ?? "").trim()
-    const noSyncedLyrics = /no SYLT frames found/i.test(errorOutput)
-    if (!noSyncedLyrics) {
-      logError(`go-sylt error: ${errorOutput}`)
+    const noTimedLyrics = /No timed lyrics/i.test(errorOutput)
+    if (!noTimedLyrics) {
+      logError(`lrc_tools error: ${errorOutput}`)
     }
     return null
   }
@@ -92,23 +92,6 @@ function parseLanguageAndLyrics(rawOutput: string): {
   return { language, lyrics: lrcLines.join("\n") }
 }
 
-/**
- * Converts 3-digit millisecond timestamps to 2-digit centiseconds.
- *
- * 'go-sylt' outputs [mm:ss.xxx] (milliseconds), but mpv expects
- * [mm:ss.xx] (centiseconds). The last millisecond digit is dropped.
- *
- * @example
- * convertToCentiseconds("[01:05.123] Line one\n[01:08.999] Line two")
- * // Returns: "[01:05.12] Line one\n[01:08.99] Line two"
- */
-function convertToCentiseconds(lyrics: string): string {
-  return lyrics.replace(
-    /\[(\d+):(\d+)\.(\d\d)\d\]/g,
-    (_match, minutes, seconds, centiseconds) => `[${minutes}:${seconds}.${centiseconds}]`,
-  )
-}
-
 function getFileExtension(filePath: string): string {
   const lastDotIndex = filePath.lastIndexOf(".")
   return lastDotIndex !== -1 ? filePath.slice(lastDotIndex).toLowerCase() : ""
@@ -129,9 +112,9 @@ function loadLyricsInMpv(lyrics: string, language: string | null): void {
 
 function main(): void {
   mp.register_event("file-loaded", () => {
-    if (!isGoSyltInstalled()) {
+    if (!isLrcToolsInstalled()) {
       logError(
-        "'go-sylt' is not installed. Please install it from https://github.com/mogita/go-sylt",
+        "'lrc_tools' is not installed. Please install it from https://github.com/PaperNick/lrc_tools",
       )
       return
     }
@@ -142,7 +125,6 @@ function main(): void {
     }
 
     if (!isLocalFile(filePath)) {
-      // go-sylt supports only local files, not streams
       return
     }
 
@@ -150,17 +132,17 @@ function main(): void {
       return
     }
 
-    const rawSyltOutput = extractSyltLyrics(filePath)
-    if (!rawSyltOutput) {
+    const rawOutput = readTimedLyrics(filePath)
+    if (!rawOutput) {
       return
     }
 
-    const { language, lyrics } = parseLanguageAndLyrics(rawSyltOutput)
+    const { language, lyrics } = parseLanguageAndLyrics(rawOutput)
     if (!lyrics) {
       return
     }
 
-    loadLyricsInMpv(convertToCentiseconds(lyrics), language)
+    loadLyricsInMpv(lyrics, language)
   })
 }
 
