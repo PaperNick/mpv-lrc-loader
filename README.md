@@ -13,10 +13,12 @@ You need to have [lrc_tools](https://github.com/PaperNick/lrc_tools) installed i
 > [!NOTE]
 > Pre-compiled versions are available on the [releases page](https://github.com/PaperNick/mpv-lrc-loader/releases)
 
-Copy the script to your mpv scripts folder:
+Compile the project and copy the script to your mpv scripts folder:
 
 ```bash
-cp mpv-lrc-loader.js ~/.config/mpv/scripts/
+npm ci
+npm run build
+cp dist/mpv-lrc-loader.js ~/.config/mpv/scripts/
 ```
 
 
@@ -38,13 +40,3 @@ Language: ja
 ```
 
 The first line indicates the 2-letter ISO 639-1 language code, followed by LRC-formatted timestamped lyrics in [mm:ss.cc] centisecond format.
-
-
-## Building from source
-
-```bash
-npm ci
-npm run build
-```
-
-The compiled output will be located at `dist/mpv-lrc-loader.js`
