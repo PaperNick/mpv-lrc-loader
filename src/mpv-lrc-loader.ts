@@ -6,6 +6,15 @@ interface SubprocessResult {
   error_string?: string
 }
 
+interface Options {
+  lrc_tools_binary: string
+  [key: string]: string | boolean | number
+}
+
+const options: Options = {
+  lrc_tools_binary: "lrc_tools",
+}
+
 function logError(message: string): void {
   mp.msg.error(message)
   if (mp.get_property_native("vo-configured")) {
@@ -18,13 +27,19 @@ function isWindows(): boolean {
   return workdir.indexOf("\\") !== -1
 }
 
+function getBasename(path: string): string {
+  const pathSeparator = isWindows() ? "\\" : "/"
+  return path.split(pathSeparator).pop() ?? path
+}
+
 function isLrcToolsInstalled(): boolean {
+  const lrcTools = options.lrc_tools_binary
   const whichCmd = isWindows() ? "where" : "which"
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: [whichCmd, "lrc_tools"],
+    args: [whichCmd, lrcTools],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
@@ -32,7 +47,9 @@ function isLrcToolsInstalled(): boolean {
   }
 
   if (subprocessResult.status < 0) {
-    logError(`Could not check 'lrc_tools': ${subprocessResult.error_string ?? "unknown error"}`)
+    logError(
+      `Could not check '${getBasename(lrcTools)}': ${subprocessResult.error_string ?? "unknown error"}`,
+    )
     return false
   }
 
@@ -40,11 +57,12 @@ function isLrcToolsInstalled(): boolean {
 }
 
 function readTimedLyrics(filePath: string): string | null {
+  const lrcTools = options.lrc_tools_binary
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: ["lrc_tools", "read", "--include-lang", filePath, "timed"],
+    args: [lrcTools, "read", "--include-lang", filePath, "timed"],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
@@ -60,7 +78,7 @@ function readTimedLyrics(filePath: string): string | null {
     const errorOutput = (subprocessResult.stderr ?? "").trim()
     const noTimedLyrics = /No timed lyrics/i.test(errorOutput)
     if (!noTimedLyrics) {
-      logError(`lrc_tools error: ${errorOutput}`)
+      logError(`'${getBasename(lrcTools)}' error: ${errorOutput}`)
     }
     return null
   }
@@ -111,6 +129,8 @@ function loadLyricsInMpv(lyrics: string, language: string | null): void {
 }
 
 function main(): void {
+  mp.options.read_options(options, "mpv-lrc-loader")
+
   mp.register_event("file-loaded", () => {
     const filePath = mp.get_property("path")
     if (!filePath) {
@@ -127,7 +147,7 @@ function main(): void {
 
     if (!isLrcToolsInstalled()) {
       logError(
-        "'lrc_tools' is not installed. Please install it from https://github.com/PaperNick/lrc_tools",
+        `'${getBasename(options.lrc_tools_binary)}' is not installed. Please install it from https://github.com/PaperNick/lrc_tools`,
       )
       return
     }

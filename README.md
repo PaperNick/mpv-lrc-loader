@@ -40,3 +40,24 @@ Language: ja
 ```
 
 The first line indicates the 2-letter ISO 639-1 language code, followed by LRC-formatted timestamped lyrics in [mm:ss.cc] centisecond format.
+
+
+## Configuration (optional)
+
+Create a file in `~/.config/mpv/script-opts/mpv-lrc-loader.conf` with any of the following options:
+
+| Option | Value | Description |
+|--------|---------|-------------|
+| `lrc_tools_binary` | `lrc_tools` | Name of the `lrc_tools` binary or its full path |
+
+For example if you renamed the `lrc_tools` binary to `my-lyric-tool`:
+
+```ini
+lrc_tools_binary=my-lyric-tool
+```
+
+You can also use a full path if the binary is not in your `PATH`:
+
+```ini
+lrc_tools_binary=/home/user/bin/my-lyric-tool
+```
