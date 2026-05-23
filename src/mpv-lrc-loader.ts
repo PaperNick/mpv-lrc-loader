@@ -112,13 +112,6 @@ function loadLyricsInMpv(lyrics: string, language: string | null): void {
 
 function main(): void {
   mp.register_event("file-loaded", () => {
-    if (!isLrcToolsInstalled()) {
-      logError(
-        "'lrc_tools' is not installed. Please install it from https://github.com/PaperNick/lrc_tools",
-      )
-      return
-    }
-
     const filePath = mp.get_property("path")
     if (!filePath) {
       return
@@ -129,6 +122,13 @@ function main(): void {
     }
 
     if (getFileExtension(filePath) !== ".mp3") {
+      return
+    }
+
+    if (!isLrcToolsInstalled()) {
+      logError(
+        "'lrc_tools' is not installed. Please install it from https://github.com/PaperNick/lrc_tools",
+      )
       return
     }
 
