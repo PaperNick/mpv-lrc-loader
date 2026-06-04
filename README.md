@@ -2,7 +2,6 @@
 
 MPV script to read embedded timed LRC lyrics (SYLT frames) from MP3 files and display them as subtitles in mpv. Only local MP3 files are processed.
 
-
 ## Dependencies
 
 You need to have [lrc_tools](https://github.com/PaperNick/lrc_tools) installed in your `PATH`
@@ -24,12 +23,11 @@ cp dist/mpv-lrc-loader.js ~/.config/mpv/scripts/
 
 ## How it works
 
-1. When a file is loaded in mpv, the script checks if it's a local MP3 file.
-2. If so, it runs `lrc_tools read --include-lang file.mp3 timed` to extract embedded timed lyrics (SYLT).
-3. The lyrics (in LRC format with timestamps) are loaded into mpv's subtitle system via `sub-add`.
-4. The language code (e.g. `en`, `ja`, `ko`) from the SYLT frame is passed along so mpv can use it for track selection.
+1. When a local MP3 file is loaded in mpv, the script uses `lrc_tools` to extract embedded lyrics.
+2. It tries find timed lyrics in both `SYLT` and `USLT` ID3 frames.
+3. The lyrics are loaded into mpv's subtitle system via `sub-add`, along with the language code (e.g. `en`, `ja`, `ko`).
 
-The content loaded from the MP3's SYLT frame looks like this:
+Timed lyrics loaded from the MP3's ID3 frame looks like this:
 
 ```
 Language: ja

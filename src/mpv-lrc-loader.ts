@@ -56,13 +56,13 @@ function isLrcToolsInstalled(): boolean {
   return subprocessResult.status === 0
 }
 
-function readTimedLyrics(filePath: string): string | null {
+function readLyrics(filePath: string, type: "timed" | "plain" = "timed"): string | null {
   const lrcTools = options.lrc_tools_binary
   const subprocessResult = mp.command_native({
     name: "subprocess",
     capture_stdout: true,
     capture_stderr: true,
-    args: [lrcTools, "read", "--include-lang", filePath, "timed"],
+    args: [lrcTools, "read", "--include-lang", filePath, type],
   }) as SubprocessResult
 
   if (subprocessResult.killed_by_us) {
@@ -76,8 +76,10 @@ function readTimedLyrics(filePath: string): string | null {
 
   if (subprocessResult.status !== 0) {
     const errorOutput = (subprocessResult.stderr ?? "").trim()
-    const noTimedLyrics = /No timed lyrics/i.test(errorOutput)
-    if (!noTimedLyrics) {
+    const noLyricsPattern = new RegExp(`No ${type} lyrics`, "i")
+    const noLyricsMatch = noLyricsPattern.test(errorOutput)
+    const hasNonStandardError = !noLyricsMatch
+    if (hasNonStandardError) {
       logError(`'${getBasename(lrcTools)}' error: ${errorOutput}`)
     }
     return null
@@ -87,7 +89,7 @@ function readTimedLyrics(filePath: string): string | null {
   return rawLyrics ?? null
 }
 
-function parseLanguageAndLyrics(rawOutput: string): {
+function parseTimedLyricsAndLang(rawOutput: string): {
   language: string | null
   lyrics: string
 } {
@@ -152,12 +154,12 @@ function main(): void {
       return
     }
 
-    const rawOutput = readTimedLyrics(filePath)
+    const rawOutput = readLyrics(filePath, "timed") ?? readLyrics(filePath, "plain")
     if (!rawOutput) {
       return
     }
 
-    const { language, lyrics } = parseLanguageAndLyrics(rawOutput)
+    const { language, lyrics } = parseTimedLyricsAndLang(rawOutput)
     if (!lyrics) {
       return
     }
